@@ -10,7 +10,7 @@ import mlflow
 app = Flask(__name__)
 
 # Load the trained model (replace 'model.pkl' with the actual path to your model)
-model = joblib.load('../Assignment-2/logistic_regression_model.joblib')  # Update with your model file name
+model = joblib.load('Assignment-4/logistic_regression_model.joblib')  # Update with your model file name
 
 @app.route('/score', methods=['POST'])
 def score_endpoint():

@@ -25,7 +25,7 @@ from score import score
 
 def test_score():
     # Load the trained model 
-    model = joblib.load('../Assignment-2/logistic_regression_model.joblib')  # Update with your model file name
+    model = joblib.load('Assignment-4/logistic_regression_model.joblib')  # Update with your model file name
 
     # Test cases
     test_cases = [
@@ -66,7 +66,7 @@ def test_score():
 
 def test_flask():
     # Launch the Flask app using command line
-    os.system("python app.py &")  # Run the app in the background
+    os.system("python Assignment-4/app.py &")  # Run the app in the background
     time.sleep(5)  # Wait for the server to start
 
     # Test the response from the localhost endpoint
@@ -79,8 +79,72 @@ def test_flask():
     assert 'propensity' in response_data, "Response should contain 'propensity'"
 
     # Close the Flask app using command line
-    os.system("pkill -f app.py")  # Kill the Flask app process
+    os.system("pkill -f Assignment-4/app.py")  # Kill the Flask app process
 
+
+def test_docker():
+    if shutil.which("docker") is None:
+        pytest.skip("Docker CLI is not available on this machine")
+
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    dockerfile_path = os.path.join(project_root, "Assignment-4", "Dockerfile")
+    image_tag = "assignment3-flask:test"
+    container_name = "assignment3-flask-test-container"
+
+    build_cmd = [
+        "docker",
+        "build",
+        "-f",
+        dockerfile_path,
+        "-t",
+        image_tag,
+        project_root,
+    ]
+    subprocess.run(build_cmd, check=True)
+
+    run_cmd = [
+        "docker",
+        "run",
+        "--rm",
+        "-d",
+        "--name",
+        container_name,
+        "-p",
+        "5000:5000",
+        image_tag,
+    ]
+    subprocess.run(run_cmd, check=True)
+
+    try:
+        url = "http://127.0.0.1:5000/score"
+        payload = {"text": "Congratulations! You have won a free vacation. Click now!"}
+
+        response = None
+        for _ in range(20):
+            try:
+                response = requests.post(url, json=payload, timeout=3)
+                if response.status_code == 200:
+                    break
+            except requests.RequestException:
+                pass
+            time.sleep(1)
+
+        assert response is not None, "No response received from the Dockerized app"
+        assert response.status_code == 200, "Expected status code 200 from /score"
+
+        body = response.json()
+        assert "prediction" in body
+        assert "propensity" in body
+        assert body["prediction"] in ["True", "False"]
+        assert isinstance(body["propensity"], float)
+        assert 0.0 <= body["propensity"] <= 1.0
+    finally:
+        subprocess.run(
+            ["docker", "stop", container_name],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
 
 
 # In coverage.txt produce the coverage report output of the unit test and integration test using pytest

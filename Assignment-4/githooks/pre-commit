@@ -1,0 +1,11 @@
+#!/bin/bash
+
+source .env/bin/activate
+
+pytest Assignment-4/test.py
+if [ $? -ne 0 ]; then
+    echo "Tests failed. Commit aborted."
+    exit 1
+else
+    echo "Tests passed. Proceeding with commit."
+fi
